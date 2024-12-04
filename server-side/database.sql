@@ -1,3 +1,13 @@
+drop database if exists payment_db;
+create database payment_db;
+
+drop database if exists vehicles_reservations_db;
+create database vehicles_reservations_db;
+
+drop database if exists common_db;
+create database common_db;
+
+
 drop database if exists users_db;
 create database users_db;
 
@@ -19,8 +29,7 @@ create table users (
 --------------------------------------------------------------------------------------------------------------------
 
 
-drop database if exists common_db;
-create database common_db;
+
 
 use common_db;
 
@@ -46,8 +55,6 @@ create table promotions (
 --------------------------------------------------------------------------------------------------------------------
 
 
-drop database if exists vehicles_reservations_db;
-create database vehicles_reservations_db;
 
 use vehicles_reservations_db;
 
@@ -87,8 +94,6 @@ create table bookings (
 --------------------------------------------------------------------------------------------------------------------
 
 
-drop database if exists payment_db;
-create database payment_db;
 
 use payment_db;
 
@@ -104,3 +109,78 @@ create table payments (
     foreign key (bookingID) references vehicles_reservations_db.bookings(bookingID),
     foreign key (promotionID) references common_db.promotions(promotionID)
 );
+
+
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+
+
+
+--- DATA
+USE users_db;
+
+-- Insert fake data for users
+INSERT INTO users (Name, Email, contactNo, hashedPassword, membershipTier) VALUES
+('John Doe', 'john.doe@example.com', '12345678', 'hashedpassword123', 'Basic'),
+('Jane Smith', 'jane.smith@example.com', '87654321', 'hashedpassword456', 'Premium'),
+('Alice Johnson', 'alice.johnson@example.com', '23456789', 'hashedpassword789', 'VIP'),
+('Bob Brown', 'bob.brown@example.com', '34567890', 'hashedpassword012', 'Basic');
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
+USE common_db;
+
+-- Insert fake data for member benefits
+INSERT INTO member_benefits (membershipTier, Name, Description) VALUES
+('Basic', 'Free Vehicle Access', 'Access to basic tier vehicles.'),
+('Premium', 'Discounted Rates', '10% discount on all rentals.'),
+('VIP', 'Priority Support', '24/7 priority customer support.');
+
+-- Insert fake data for promotions
+INSERT INTO promotions (Name, Description, Discount, ifPercentage) VALUES
+('New Year Promo', 'Get 20% off on your next booking.', 20.00, '1'),
+('Flat Discount', 'Get $10 off on your next booking.', 10.00, '0'),
+('Holiday Special', '15% off on bookings during the holiday season.', 15.00, '1');
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
+USE vehicles_reservations_db;
+
+-- Insert fake data for vehicles
+INSERT INTO vehicles (licensePlate, Model, rentalRate) VALUES
+('ABC1234', 'Tesla Model 3', 50),
+('DEF5678', 'Nissan Leaf', 40),
+('GHI9012', 'Chevy Bolt', 45),
+('JKL3456', 'BMW i3', 60);
+
+-- Insert fake data for vehicle status history
+INSERT INTO vehicleStatusHistory (vehicleID, location, chargeLevel, cleanlinessStatus) VALUES
+(1, 'Downtown Garage', 85, 'Clean'),
+(2, 'Airport Lot', 60, 'Clean'),
+(3, 'Mall Parking', 20, 'Dirty'),
+(4, 'Suburban Garage', 95, 'Clean');
+
+-- Insert fake data for bookings
+INSERT INTO bookings (vehicleID, userID, startTime, endTime, Status) VALUES
+(1, 1, '2024-12-01 10:00:00', '2024-12-01 12:00:00', 'Completed'),
+(2, 2, '2024-12-02 14:00:00', '2024-12-02 16:00:00', 'Active'),
+(3, 3, '2024-12-03 09:00:00', '2024-12-03 11:00:00', 'Cancelled'),
+(4, 4, '2024-12-04 15:00:00', '2024-12-04 17:00:00', 'Active');
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+USE payment_db;
+
+-- Insert fake data for payments
+INSERT INTO payments (userID, bookingID, Status, promotionID, Amount) VALUES
+(1, 1, 'Successful', 1, 40.00),
+(2, 2, 'Pending', 2, 30.00),
+(3, 3, 'Refunded', 3, 38.25),
+(4, 4, 'Successful', 1, 48.00);
