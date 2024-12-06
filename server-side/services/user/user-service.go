@@ -46,9 +46,9 @@ func main() {
 
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
 
-	fmt.Println("User Service listening at port 5010")
+	fmt.Println("User Service listening at port 5001")
 	corsHandler := cors.Default().Handler(router)
-	log.Fatal(http.ListenAndServe("localhost:5010", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5001", corsHandler))
 }
 
 func retryDBConnection(dbAuth string) {

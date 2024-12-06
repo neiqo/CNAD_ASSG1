@@ -33,7 +33,7 @@ func main() {
 
 	DB_AUTH := os.Getenv("DB_AUTH")
 
-	db, err = sql.Open("mysql", DB_AUTH+"vehicles_reservatioans_db")
+	db, err = sql.Open("mysql", DB_AUTH+"vehicles_reservations_db")
 	if err != nil {
 		log.Printf("Initial database connection failed: %v", err)
 	}
@@ -46,9 +46,9 @@ func main() {
 
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
 
-	fmt.Println("Vehicle Service listening at port 5020")
+	fmt.Println("Vehicle Service listening at port 5002")
 	corsHandler := cors.Default().Handler(router)
-	log.Fatal(http.ListenAndServe("localhost:5020", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5002", corsHandler))
 }
 
 func retryDBConnection(dbAuth string) {

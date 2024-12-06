@@ -33,7 +33,7 @@ func main() {
 
 	DB_AUTH := os.Getenv("DB_AUTH")
 
-	db, err = sql.Open("mysql", DB_AUTH+"billings_reservatioans_db")
+	db, err = sql.Open("mysql", DB_AUTH+"payment_db")
 	if err != nil {
 		log.Printf("Initial database connection failed: %v", err)
 	}
@@ -46,9 +46,9 @@ func main() {
 
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
 
-	fmt.Println("Billing Service listening at port 5040")
+	fmt.Println("Billing Service listening at port 5004")
 	corsHandler := cors.Default().Handler(router)
-	log.Fatal(http.ListenAndServe("localhost:5040", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5004", corsHandler))
 }
 
 func retryDBConnection(dbAuth string) {
@@ -58,7 +58,7 @@ func retryDBConnection(dbAuth string) {
 
 			// keep trying every 5 seconds reconnect to the db
 			var err error
-			db, err = sql.Open("mysql", dbAuth+"billings_reservations_db")
+			db, err = sql.Open("mysql", dbAuth+"payment_db")
 			if err != nil {
 				log.Printf("Error reinitializing database connection: %v", err)
 			}
