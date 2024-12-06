@@ -10,52 +10,49 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
-);	
+)
 
 var db *sql.DB
-var dbConnected bool // Track DB connection status
-
+var dbConnected int32 // Track DB connection status
 
 func main() {
 	var err error
 
 	err = godotenv.Load("../../../.env")
-    if err != nil {
-        log.Fatalf("UserServiceErr: Error loading .env file: %v", err)
-    }
+	if err != nil {
+		log.Fatalf("UserServiceErr: Error loading .env file: %v", err)
+	}
 
-	DB_AUTH := os.Getenv("DB_AUTH") 
+	DB_AUTH := os.Getenv("DB_AUTH")
 
-	db, err = sql.Open("mysql", DB_AUTH + "usears_db")
+	db, err = sql.Open("mysql", DB_AUTH+"usears_db")
 	if err != nil {
 		log.Printf("Initial database connection failed: %v", err)
 	}
 
-	dbConnected := make(chan bool)
-
 	// Start a goroutine to retry the connection if it fails
-	go retryDBConnection(DB_AUTH, dbConnected)
-	
-	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/", handlers.Home()) // This handler is available right away
+	go retryDBConnection(DB_AUTH)
 
-	
-	fmt.Println("Listening at port 5000")
+	router := mux.NewRouter()
+	router.HandleFunc("/api/v1/", handlers.Home(getDBStatus))
+
+	fmt.Println("User Service listening at port 5010")
 	corsHandler := cors.Default().Handler(router)
 
-	log.Fatal(http.ListenAndServe("localhost:5000", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5010", corsHandler))
 }
 
-func retryDBConnection(dbAuth string, dbConnected chan bool) {
+func retryDBConnection(dbAuth string) {
 	for {
 		if err := db.Ping(); err != nil {
-			log.Printf("Database connection failed: %v. Retrying in 30 seconds...", err)
+			log.Printf("Database connection failed: %v. Retrying in 5 seconds...", err)
 
 			// Try to reinitialize the database connection
 			var err error
@@ -65,9 +62,7 @@ func retryDBConnection(dbAuth string, dbConnected chan bool) {
 			}
 		} else {
 			log.Println("Database connection successful!")
-			dbConnected <- true
-			close(dbConnected)
-			SetDBConnected(true) // Update global dbConnected flag
+			SetDBConnected(true)
 			return
 		}
 
@@ -77,7 +72,15 @@ func retryDBConnection(dbAuth string, dbConnected chan bool) {
 }
 
 func SetDBConnected(status bool) {
-	dbConnected = status
+	if status {
+		atomic.StoreInt32(&dbConnected, 1)
+	} else {
+		atomic.StoreInt32(&dbConnected, 0)
+	}
+}
+
+func getDBStatus() bool {
+	return atomic.LoadInt32(&dbConnected) == 1
 }
 
 // HOME PAGE DOESNT DYNAMICALLY CHANGE WHEN THE DB CONNECTS SUCCESFFULY
