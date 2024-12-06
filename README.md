@@ -16,7 +16,7 @@
 
 ## Ports Used
 
- - User Service: 5010
- - Vehicle Service: 5020
- - Common Service: 5030
- - Billing Service: 5040
+ - User Service: 5001
+ - Vehicle Service: 5002
+ - Common Service: 5003
+ - Billing Service: 5004
