@@ -54,7 +54,7 @@ func main() {
 func retryDBConnection(dbAuth string) {
 	for {
 		if err := db.Ping(); err != nil {
-			log.Printf("Database connection failed: %v. Retrying in 5 seconds...", err)
+			log.Printf("User Database connection failed: %v. Retrying in 5 seconds...", err)
 
 			// keep trying every 5 seconds reconnect to the db
 			var err error
@@ -63,7 +63,7 @@ func retryDBConnection(dbAuth string) {
 				log.Printf("Error reinitializing database connection: %v", err)
 			}
 		} else {
-			log.Println("Database connection successful!")
+			log.Println("User Database connection successful!")
 			SetDBConnected(true)
 			return
 		}
