@@ -20,9 +20,10 @@ import (
 )
 
 var db *sql.DB
-var dbConnected int32 // Track DB connection status
+var dbConnected int32
 
 func main() {
+	// DB CONNECTION
 	var err error
 
 	err = godotenv.Load("../../../.env")
@@ -32,20 +33,21 @@ func main() {
 
 	DB_AUTH := os.Getenv("DB_AUTH")
 
-	db, err = sql.Open("mysql", DB_AUTH+"usears_db")
+	db, err = sql.Open("mysql", DB_AUTH+"users_db")
 	if err != nil {
 		log.Printf("Initial database connection failed: %v", err)
 	}
 
-	// Start a goroutine to retry the connection if it fails
+	// start a goroutine to retry the connection if it fails
 	go retryDBConnection(DB_AUTH)
 
+	// ROUTES
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/", handlers.Home(getDBStatus))
+
+	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
 
 	fmt.Println("User Service listening at port 5010")
 	corsHandler := cors.Default().Handler(router)
-
 	log.Fatal(http.ListenAndServe("localhost:5010", corsHandler))
 }
 
@@ -54,7 +56,7 @@ func retryDBConnection(dbAuth string) {
 		if err := db.Ping(); err != nil {
 			log.Printf("Database connection failed: %v. Retrying in 5 seconds...", err)
 
-			// Try to reinitialize the database connection
+			// keep trying every 5 seconds reconnect to the db
 			var err error
 			db, err = sql.Open("mysql", dbAuth+"users_db")
 			if err != nil {
@@ -66,7 +68,7 @@ func retryDBConnection(dbAuth string) {
 			return
 		}
 
-		// Wait 1 minute before retrying
+		// wait 5 seconds before retrying
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -82,5 +84,3 @@ func SetDBConnected(status bool) {
 func getDBStatus() bool {
 	return atomic.LoadInt32(&dbConnected) == 1
 }
-
-// HOME PAGE DOESNT DYNAMICALLY CHANGE WHEN THE DB CONNECTS SUCCESFFULY

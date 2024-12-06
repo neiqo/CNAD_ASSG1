@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func Home(getDBStatus func() bool) http.HandlerFunc {
+func Status(getDBStatus func() bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !getDBStatus() {
 			http.Error(w, "Error: User Service failed to connect to the database", http.StatusInternalServerError)
