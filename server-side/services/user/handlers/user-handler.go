@@ -61,8 +61,6 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Hashed password stored in DB: %s\n", hashedPassword)
-
 	// success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -96,9 +94,6 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Error querying user from database. Error: %v", err), http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Printf("Retrieved hash from DB: %s\n", user.HashedPassword)
-	fmt.Printf("Password from Postman: %s\n", loginData.HashedPassword)
 
 	// Compare the hashed password received with the stored bcrypt hash
 	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(loginData.HashedPassword))
