@@ -44,19 +44,23 @@ func main() {
 	// set the db after is good
 	handlers.SetDBConnection(db)
 
-	// ROUTES
-	router := mux.NewRouter()
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://127.0.0.1:3000"},        // specify your frontend URL
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"}, // methods you want to allow
+		AllowedHeaders: []string{"Content-Type"},                 // headers you want to allow
+	})
 
+	router := mux.NewRouter()
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
 
 	router.HandleFunc("/api/v1/register", handlers.RegisterUser).Methods("POST")
 	router.HandleFunc("/api/v1/login", handlers.LoginUser).Methods("POST")
 	router.HandleFunc("/api/v1/verify-email", handlers.VerifyEmail).Methods("POST")
 	router.HandleFunc("/api/v1/user/{email}", handlers.GetUserByEmail).Methods("GET")
+	router.HandleFunc("/api/v1/user/{email}", handlers.UpdateUserDetails).Methods("PUT")
 
 	fmt.Println("User Service listening at port 5001")
-	corsHandler := cors.Default().Handler(router)
-	log.Fatal(http.ListenAndServe("localhost:5001", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5001", c.Handler(router)))
 }
 
 func retryDBConnection(dbAuth string) {
