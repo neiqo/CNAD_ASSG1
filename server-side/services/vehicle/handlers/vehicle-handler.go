@@ -10,12 +10,10 @@ import (
 
 var db *sql.DB
 
-// SetDBConnection initializes the DB connection for the handlers.
 func SetDBConnection(database *sql.DB) {
 	db = database
 }
 
-// Status checks the DB connection status.
 func Status(getDBStatus func() bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !getDBStatus() {
@@ -27,7 +25,6 @@ func Status(getDBStatus func() bool) http.HandlerFunc {
 	}
 }
 
-// AddVehicle handles adding a new vehicle to the database.
 func AddVehicle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -58,7 +55,6 @@ func AddVehicle(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Vehicle added successfully with ID: %d", insertID)
 }
 
-// AddVehicleStatus handles adding a status update for a vehicle.
 func AddVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -89,7 +85,6 @@ func AddVehicleStatus(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Vehicle status added successfully!")
 }
 
-// AddBooking handles creating a new booking.
 func AddBooking(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -120,7 +115,6 @@ func AddBooking(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Booking created successfully!")
 }
 
-// GetVehicles handles fetching all vehicles.
 func GetVehicles(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT vehicleID, licensePlate, Model, rentalRate FROM vehicles`
 	rows, err := db.Query(query)
