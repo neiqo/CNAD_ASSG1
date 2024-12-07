@@ -4,7 +4,7 @@ import (
 	"common/handlers"
 	"database/sql"
 
-	//"common/models
+	//"common/models"
 	//"encoding/json"
 	"fmt"
 	"log"
@@ -41,10 +41,15 @@ func main() {
 	// start a goroutine to retry the connection if it fails
 	go retryDBConnection(DB_AUTH)
 
+	handlers.SetDBConnection(db)
+
 	// ROUTES
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
+
+	router.HandleFunc("/api/v1/member-benefits/{membershipTier}", handlers.GetMemberBenefits).Methods("GET")
+	router.HandleFunc("/api/v1/promotions", handlers.GetPromotions).Methods("GET")
 
 	fmt.Println("Common Service listening at port 5003")
 	corsHandler := cors.Default().Handler(router)
