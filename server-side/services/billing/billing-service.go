@@ -41,10 +41,16 @@ func main() {
 	// start a goroutine to retry the connection if it fails
 	go retryDBConnection(DB_AUTH)
 
+	handlers.SetDBConnection(db)
+
 	// ROUTES
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
+
+	router.HandleFunc("/api/v1/payments", handlers.CreatePayment).Methods("POST")
+	router.HandleFunc("/api/v1/payments/{paymentID}", handlers.UpdatePaymentStatus).Methods("PUT")
+	router.HandleFunc("/api/v1/payments/{paymentID}", handlers.GetPayment).Methods("GET")
 
 	fmt.Println("Billing Service listening at port 5004")
 	corsHandler := cors.Default().Handler(router)
