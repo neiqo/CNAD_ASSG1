@@ -7,4 +7,6 @@ type User struct {
 	ContactNo      string `json:"contact_no"`
 	HashedPassword string `json:"hashed_password"`
 	MembershipTier string `json:"membership_tier"`
+	VerifCode      string `json:"verif_code"`
+	EmailVerified  bool   `json:"email_verified"`
 }

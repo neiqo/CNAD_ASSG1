@@ -37,14 +37,27 @@ document.getElementById('registerForm').addEventListener('submit', async functio
       },
       body: JSON.stringify(requestData)
   })
-  .then(response => response.json())
+  .then(response => {
+      if (!response.ok) {
+          // If the response status is not OK (not 2xx), throw an error with the message from the response
+          return response.json().then(errorData => {
+              throw new Error(errorData.error || 'An error occurred');
+          });
+      }
+      return response.json();
+  })
   .then(data => {
+      // Handle success response
       document.getElementById('responseMessage').innerHTML = `Registration Success: ${data.message}`;
+      window.location.href = "verifyemail.html"
   })
   .catch(error => {
+      // Handle error response
       document.getElementById('responseMessage').innerHTML = `Error: ${error.message}`;
   });
 });
+
+
 
 // login form
 document.getElementById('loginForm').addEventListener('submit', async function(event) {
@@ -69,11 +82,21 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
       },
       body: JSON.stringify(loginData)
   })
-  .then(response => response.json())
+  .then(response => {
+      if (!response.ok) {
+          // If the response status is not OK (not 2xx), throw an error with the message from the response
+          return response.json().then(errorData => {
+              throw new Error(errorData.error || 'An error occurred');
+          });
+      }
+      return response.json();
+  })
   .then(data => {
+      // Handle success response
       document.getElementById('responseMessage').innerHTML = `Login Success: ${data.message}`;
   })
   .catch(error => {
+      // Handle error response
       document.getElementById('responseMessage').innerHTML = `Error: ${error.message}`;
   });
 });
