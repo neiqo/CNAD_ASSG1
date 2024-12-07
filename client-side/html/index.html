@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration & Login</title>
+</head>
+<body>
+    <h1>Register or Login</h1>
+
+    <!-- Register Form -->
+    <h2>Register</h2>
+    <form id="registerForm">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="email">Email:</label><br>
+        <input type="email" id="registerEmail" name="email" required><br><br>
+
+        <label for="contactNo">Contact Number:</label><br>
+        <input type="text" id="registerContactNo" name="contactNo" required><br><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="registerPassword" name="password" required><br><br>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <br><hr><br>
+
+    <!-- Login Form -->
+    <h2>Login</h2>
+    <form id="loginForm">
+        <label for="loginEmail">Email:</label><br>
+        <input type="email" id="loginEmail" name="email" required><br><br>
+
+        <label for="loginPassword">Password:</label><br>
+        <input type="password" id="loginPassword" name="password" required><br><br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <div id="responseMessage"></div>
+
+    <script src="../js/login-register.js" defer></script>
+</body>
+</html>

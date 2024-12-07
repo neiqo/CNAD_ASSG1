@@ -53,7 +53,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save the bcrypt-hashed password to the database
+	// save the hashed password into db using bcrypt
 	query := "INSERT INTO users (Name, Email, contactNo, hashedPassword) VALUES (?, ?, ?, ?)"
 	_, err = db.Exec(query, user.Name, user.Email, user.ContactNo, string(hashedPassword))
 	if err != nil {
@@ -95,14 +95,14 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Compare the hashed password received with the stored bcrypt hash
+	// compare the password received with the stored bcrypt hash
 	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(loginData.HashedPassword))
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Success response
+	// success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	response := map[string]string{
