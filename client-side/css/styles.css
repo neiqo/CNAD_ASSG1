@@ -1,33 +1,148 @@
+/* styles.css */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 50px;
-    background-color: #f4f4f4;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+}
+
+#flex {
+  display: flex;
+  flex-direction: row;
+}
+
+h1 {
+  color: #4a4a4a;
+  font-size: 32px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+h2 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 24px;
+}
+
+/* Main container for both forms */
+.form-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 2000px;
+  margin: 0 auto;
+}
+
+form {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+}
+
+label {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #2c3e50;
+  display: block;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  background-color: #f9f9f9;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+  border-color: #3498db;
+  outline: none;
+}
+
+button {
+  background-color: #3498db;
+  color: white;
+  padding: 14px;
+  font-size: 18px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+a.button {
+  display: block;
+  background-color: #27ae60;
+  color: white;
+  padding: 14px;
+  font-size: 18px;
+  border-radius: 5px;
+  text-align: center;
+  text-decoration: none;
+  width: 100%;
+  margin-top: 10px;
+}
+
+a.button:hover {
+  background-color: #2ecc71;
+}
+
+hr {
+  width: 80%;
+  border: 0;
+  border-top: 1px solid #ddd;
+  margin: 30px 0;
+}
+
+#responseMessage {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: #f2dede;
+  color: #a94442;
+  border-radius: 5px;
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  h1 {
+      font-size: 28px;
   }
   
-  .button {
-    display: inline-block;
-    padding: 10px 20px;
-    color: white;
-    background-color: blue;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    font-weight: bold;
-    text-align: center;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background-color 0.3s, border-color 0.3s;
-}
+  .form-container {
+      flex-direction: column;
+      gap: 20px;
+  }
 
-.button:hover {
-    background-color: darkblue;
-    border-color: darkblue;
-}
+  form {
+      width: 90%;
+      padding: 20px;
+  }
 
-.button:active {
-    background-color: navy;
-    border-color: navy;
+  button, a.button {
+      font-size: 16px;
+  }
 }
-

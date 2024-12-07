@@ -1,0 +1,130 @@
+/* styles.css */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+    color: #333;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    font-size: 36px;
+    margin-bottom: 30px;
+}
+#tet {
+    text-align: left;
+}
+h2 {
+    color: #34495e;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+/* Container for user information */
+div {
+    margin-bottom: 30px;
+}
+
+strong {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+span {
+    color: #7f8c8d;
+}
+
+/* Update User Details Form */
+#updateForm {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+label {
+    font-size: 16px;
+    color: #34495e;
+}
+
+input[type="text"], input[type="password"] {
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    width: 100%;
+    background-color: #f9f9f9;
+    transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+button {
+    background-color: #3498db;
+    color: white;
+    padding: 14px;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+/* Benefits Section */
+#benefits {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+#benefits p {
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 40px 0;
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 28px;
+    }
+    
+    #updateForm {
+        width: 100%;
+        padding: 20px;
+    }
+
+    form {
+        gap: 15px;
+    }
+    
+    button {
+        font-size: 16px;
+    }
+}

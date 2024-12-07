@@ -8,10 +8,10 @@
 </head>
 <body>
     <h1>Register or Login</h1>
-
+    <div id="flex">
     <!-- Register Form -->
-    <h2>Register</h2>
     <form id="registerForm">
+      <h2>Register</h2>
         <label for="name">Name:</label><br>
         <input type="text" id="name" name="name" required><br><br>
 
@@ -25,15 +25,16 @@
         <input type="password" id="registerPassword" name="password" required><br><br>
 
         <button type="submit">Register</button>
+        <a href="verifyemail.html" class="button">Verify Email</a>
+
     </form>
     <br>  <br>
-    <a href="verifyemail.html" class="button">Verify Email</a>
 
     <br><hr><br>
 
     <!-- Login Form -->
-    <h2>Login</h2>
     <form id="loginForm">
+        <h2>Login</h2>
         <label for="loginEmail">Email:</label><br>
         <input type="email" id="loginEmail" name="email" required><br><br>
 
@@ -41,9 +42,12 @@
         <input type="password" id="loginPassword" name="password" required><br><br>
 
         <button type="submit">Login</button>
+        <div id="responseMessage"></div>
+        
+
     </form>
 
-    <div id="responseMessage"></div>
+    </div>
 
     <script src="../js/login-register.js" defer></script>
 </body>
