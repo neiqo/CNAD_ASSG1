@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strings"
 	"time"
 	"user/models"
 
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -224,4 +226,39 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		"message": "Login successful",
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	email := vars["email"]
+
+	email = strings.TrimSpace(email)
+
+	// check if email is provided
+	if email == "" {
+		http.Error(w, `{"error": "Email parameter is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	var user models.User
+
+	// query the database to fetch user details by email
+	query := "SELECT userID, Name, Email, contactNo, hashedPassword, membershipTier, emailVerified FROM users WHERE email = ?"
+	err := db.QueryRow(query, email).Scan(&user.UserID, &user.Name, &user.Email, &user.ContactNo, &user.HashedPassword, &user.MembershipTier, &user.EmailVerified)
+
+	if err != nil {
+		// if no user is found
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+			return
+		}
+		// if there is an error querying the database
+		http.Error(w, fmt.Sprintf(`{"error": "Error querying user from database. Error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// return user details in the response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(user)
 }

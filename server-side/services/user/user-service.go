@@ -52,6 +52,7 @@ func main() {
 	router.HandleFunc("/api/v1/register", handlers.RegisterUser).Methods("POST")
 	router.HandleFunc("/api/v1/login", handlers.LoginUser).Methods("POST")
 	router.HandleFunc("/api/v1/verify-email", handlers.VerifyEmail).Methods("POST")
+	router.HandleFunc("/api/v1/user/{email}", handlers.GetUserByEmail).Methods("GET")
 
 	fmt.Println("User Service listening at port 5001")
 	corsHandler := cors.Default().Handler(router)
