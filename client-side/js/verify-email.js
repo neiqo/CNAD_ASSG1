@@ -17,7 +17,16 @@ document.getElementById('verifyForm').addEventListener('submit', async function(
         },
         body: JSON.stringify(requestData)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            // If the response status is not OK (not 2xx), throw an error with the message from the response
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'An error occurred');
+            });
+        }
+        // If the response is OK, return the response as JSON
+        return response.json();
+    })
     .then(data => {
         // Handle success response
         document.getElementById('responseMessage').innerHTML = `Verification Success: ${data.message}`;

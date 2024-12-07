@@ -92,11 +92,32 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
       return response.json();
   })
   .then(data => {
-      // Handle success response
-      document.getElementById('responseMessage').innerHTML = `Login Success: ${data.message}`;
-  })
-  .catch(error => {
-      // Handle error response
-      document.getElementById('responseMessage').innerHTML = `Error: ${error.message}`;
-  });
+    // Handle success response
+    document.getElementById('responseMessage').innerHTML = `Login Success: ${data.message}`;
+
+    // Retrieve full user details from the backend (e.g., email, name, contactNo)
+    fetch(`http://localhost:5001/api/v1/user/${loginData.email}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(userDetails => {
+        // Store the full user details in localStorage
+        localStorage.setItem('userDetails', JSON.stringify(userDetails));
+  
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
+    })
+    .catch(error => {
+        // Handle error when fetching user details
+        document.getElementById('responseMessage').innerHTML = `Error fetching user details: ${error.message}`;
+    });
+})
+.catch(error => {
+    // Handle error response
+    document.getElementById('responseMessage').innerHTML = `Error: ${error.message}`;
+});
 });
