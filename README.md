@@ -16,6 +16,7 @@
 
 ## Ports Used
 
+ - API Gateway: 5000
  - User Service: 5001
  - Vehicle Service: 5002
  - Common Service: 5003
