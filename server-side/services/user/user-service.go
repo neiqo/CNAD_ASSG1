@@ -41,10 +41,15 @@ func main() {
 	// start a goroutine to retry the connection if it fails
 	go retryDBConnection(DB_AUTH)
 
+	// set the db after is good
+	handlers.SetDBConnection(db)
+
 	// ROUTES
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
+
+	router.HandleFunc("/api/v1/register", handlers.RegisterUser).Methods("POST")
 
 	fmt.Println("User Service listening at port 5001")
 	corsHandler := cors.Default().Handler(router)
