@@ -50,6 +50,7 @@ func main() {
 	router.HandleFunc("/api/v1/status", handlers.Status(getDBStatus)) // Fallback Status Route
 
 	router.HandleFunc("/api/v1/register", handlers.RegisterUser).Methods("POST")
+	router.HandleFunc("/api/v1/login", handlers.LoginUser).Methods("POST")
 
 	fmt.Println("User Service listening at port 5001")
 	corsHandler := cors.Default().Handler(router)
