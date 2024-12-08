@@ -38,12 +38,21 @@ function fetchBookingHistory(userId) {
 
             // Display the fetched bookings
             data.forEach(booking => {
+
+                            // Parse the time strings into Date objects
+            const startTime = new Date(booking.startTime);
+            const endTime = new Date(booking.endTime);
+
+            const options = { timeZone: 'UTC', hour12: false };
+            const startTimeString = startTime.toLocaleString('en-US', options);
+            const endTimeString = endTime.toLocaleString('en-US', options);
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${booking.bookingID}</td>
                     <td>${booking.vehicleID}</td>
-                    <td>${new Date(booking.startTime).toLocaleString()}</td>
-                    <td>${new Date(booking.endTime).toLocaleString()}</td>
+                    <td>${startTimeString}</td>
+                    <td>${endTimeString}</td>
                     <td>${booking.status}</td>
                 `;
                 document.getElementById("booking-history-body").appendChild(row);

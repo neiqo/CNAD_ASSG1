@@ -457,3 +457,98 @@ func CancelBooking(w http.ResponseWriter, r *http.Request) {
 		"message": "Booking successfully cancelled",
 	})
 }
+
+func ModifyBooking(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, `{"error": "Invalid request method"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	bookingID := r.URL.Query().Get("bookingID")
+	if bookingID == "" {
+		http.Error(w, `{"error": "bookingID is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	type BookingUpdateInput struct {
+		VehicleID int       `json:"vehicleID"`
+		UserID    int       `json:"userID"`
+		StartTime time.Time `json:"newStartTime"`
+		EndTime   time.Time `json:"newEndTime"`
+	}
+
+	var input BookingUpdateInput
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Invalid input: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	var existingUserID int
+	var existingStartTime, existingEndTime string
+	query := `SELECT userID, startTime, endTime FROM bookings WHERE bookingID = ?`
+	err := db.QueryRow(query, bookingID).Scan(&existingUserID, &existingStartTime, &existingEndTime)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error": "Booking not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error": "Error fetching booking details: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if existingUserID != input.UserID {
+		http.Error(w, `{"error": "You are not authorized to modify this booking"}`, http.StatusUnauthorized)
+		return
+	}
+
+	checkQuery := `
+        SELECT COUNT(*) 
+        FROM bookings 
+        WHERE vehicleID = ? 
+        AND bookingID != ? 
+        AND (
+            (startTime BETWEEN ? AND ?) OR 
+            (endTime BETWEEN ? AND ?) OR 
+            (? BETWEEN startTime AND endTime) OR 
+            (? BETWEEN startTime AND endTime)
+        )`
+	var count int
+	err = db.QueryRow(checkQuery, input.VehicleID, bookingID, input.StartTime, input.EndTime, input.StartTime, input.EndTime, input.StartTime, input.EndTime).Scan(&count)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error checking availability for the requested time slot: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	if count > 0 {
+		http.Error(w, `{"error": "Vehicle is already booked for the requested time slot"}`, http.StatusBadRequest)
+		return
+	}
+
+	updateQuery := `
+        UPDATE bookings 
+        SET vehicleID = ?, startTime = ?, endTime = ? 
+        WHERE bookingID = ? AND userID = ? AND status != 'Cancelled'`
+	result, err := db.Exec(updateQuery, input.VehicleID, input.StartTime, input.EndTime, bookingID, input.UserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error updating booking. Error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error checking affected rows: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		http.Error(w, `{"error": "Booking not found or it has already been cancelled"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Return success message as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Booking successfully modified",
+	})
+}
