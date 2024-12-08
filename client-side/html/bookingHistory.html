@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking History</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Your Past Bookings</h1>
+        <a href="dashboard.html" class="navigation">Dashboard</a>
+        <a href="browsevehicles.html" class="navigation">Browse Vehicles</a>
+        <a href="upcomingBookings.html" class="navigation">Upcoming Bookings</a>
+    
+        <table id="booking-history-table">
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Vehicle ID</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="booking-history-body">
+                <!-- Past bookings will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="../js/bookingHistory.js"></script>
+</body>
+</html>
