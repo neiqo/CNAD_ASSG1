@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Get userID from localStorage
     const userDetails = JSON.parse(localStorage.getItem('userDetails'));
     
     userId = userDetails.user_id
@@ -9,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // Get the booking history from the server
     fetchBookingHistory(userId);
 });
 
@@ -30,16 +28,13 @@ function fetchBookingHistory(userId) {
             return response.json();
         })
         .then(data => {
-            // Check if the response contains an error or is empty
             if (!data || data.length === 0) {
                 document.getElementById("booking-history-body").innerHTML = "<tr><td colspan='5'>No past bookings found.</td></tr>";
                 return;
             }
 
-            // Display the fetched bookings
             data.forEach(booking => {
 
-                            // Parse the time strings into Date objects
             const startTime = new Date(booking.startTime);
             const endTime = new Date(booking.endTime);
 

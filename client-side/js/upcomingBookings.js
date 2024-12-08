@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const bookingCard = document.createElement('div');
             bookingCard.classList.add('booking-card');
 
-            // Parse the time strings into Date objects
             const startTime = new Date(booking.startTime);
             const endTime = new Date(booking.endTime);
 
@@ -57,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
             upcomingBookingsContainer.appendChild(bookingCard);
         });
 
-        // Cancel booking functionality
         document.querySelectorAll('.cancel-button').forEach(button => {
             button.addEventListener('click', (event) => {
                 const bookingID = event.target.dataset.bookingId;
@@ -65,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Modify timeslot functionality
         document.querySelectorAll('.modify-button').forEach(button => {
             button.addEventListener('click', (event) => {
                 const bookingID = event.target.dataset.bookingId;
@@ -74,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Make Payment functionality
         document.querySelectorAll('.make-payment-button').forEach(button => {
             button.addEventListener('click', (event) => {
                 const bookingID = event.target.dataset.bookingId;
@@ -123,19 +119,16 @@ function makePayment(bookingID, userID, paymentButton) {
         }),
     })
     .then(response => {
-        // Check if the response status is OK (2xx)
         if (!response.ok) {
-            // Attempt to read the error message from the response
             return response.text().then(text => {
                 throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}. Response: ${text}`);
             });
         }
-        // Attempt to parse the JSON response
         return response.json();
     })
     .then(data => {
             alert('Payment successful and booking status updated to Active');
-            paymentButton.closest('.booking-card').remove(); // Remove the payment button
+            paymentButton.closest('.booking-card').remove();
             location.reload();
 
         

@@ -5,8 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const timeSlotsContainer = document.getElementById("timeSlots");
     const bookingErrorDiv = document.getElementById("bookingError");
     const bookingSuccessDiv = document.getElementById("bookingSuccess");
-    const promotionsContainer = document.getElementById("promotions"); // Container for displaying promotions
-    const estimatedCostDiv = document.getElementById("estimatedCost"); // For showing the estimated cost
+    const promotionsContainer = document.getElementById("promotions"); 
+    const estimatedCostDiv = document.getElementById("estimatedCost"); 
 
     const params = new URLSearchParams(window.location.search);
     const vehicleID = params.get("vehicleID");
@@ -16,9 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    let vehicleRentalRate = 0; // To store the vehicle's rental rate
+    let vehicleRentalRate = 0; 
 
-    // Fetch vehicle details
     fetch(`http://localhost:5002/api/v1/vehicle?vehicleID=${vehicleID}`, {
         method: "GET",
         headers: {
@@ -41,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const { vehicle, status } = data;
 
-            vehicleRentalRate = vehicle.rentalRate; // Store the vehicle's rental rate
+            vehicleRentalRate = vehicle.rentalRate; 
 
             vehicleDetailsContainer.innerHTML = `
                 <h2>Vehicle Details</h2>
@@ -56,7 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 ` : "<p>No status available for this vehicle.</p>"}
             `;
 
-            // Fetch available promotions
             fetch("http://localhost:5003/api/v1/promotions", {
                 method: "GET",
                 headers: {
@@ -84,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         promotionCheckbox.type = "radio";
                         promotionCheckbox.name = "promotion";
                         promotionCheckbox.value = promotion.promotionID;
-                        promotionCheckbox.dataset.discount = promotion.discount; // Save the discount value
+                        promotionCheckbox.dataset.discount = promotion.discount; 
                         promotionOption.appendChild(promotionCheckbox);
                         promotionOption.appendChild(document.createTextNode(`${promotion.name} - ${promotion.discount}% off`));
                         promotionsContainer.appendChild(promotionOption);
@@ -121,7 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
             timeSlotsContainer.appendChild(document.createElement("br"));
         }
 
-        // Event listener to update estimated cost whenever time slot or promotion is selected
         document.querySelectorAll('input[name="timeSlot"]').forEach(checkbox => {
             checkbox.addEventListener("change", calculateEstimatedCost);
         });
@@ -144,21 +141,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Calculate total rental hours for all selected slots
         let totalHours = 0;
         selectedSlots.forEach(slot => {
             const [start, end] = slot.split("-");
-            totalHours += parseInt(end) - parseInt(start) + 1;  // Add the hours for this slot
+            totalHours += parseInt(end) - parseInt(start) + 1;  
         });
     
-        // Calculate the base cost (vehicle rental rate * total hours)
+        
         let estimatedCost = vehicleRentalRate * totalHours;
     
-        // Apply promotion if available
         const selectedPromotion = document.querySelector('input[name="promotion"]:checked');
         if (selectedPromotion) {
             const discount = parseInt(selectedPromotion.dataset.discount) || 0;
-            estimatedCost -= estimatedCost * (discount / 100);  // Apply discount
+            estimatedCost -= estimatedCost * (discount / 100); 
         }
     
         estimatedCostDiv.textContent = `Estimated Cost: $${estimatedCost.toFixed(2)}`;

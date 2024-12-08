@@ -362,7 +362,6 @@ func GetUpcomingBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the current time
 	currentTime := time.Now()
 
 	query := `
@@ -394,14 +393,12 @@ func GetUpcomingBookings(w http.ResponseWriter, r *http.Request) {
 		var licensePlate, model, status string
 		var startTimeStr, endTimeStr string
 
-		// Scan each row into variables
 		err := rows.Scan(&bookingID, &vehicleID, &licensePlate, &model, &rentalRate, &startTimeStr, &endTimeStr, &status)
 		if err != nil {
 			http.Error(w, fmt.Sprintf(`{"error": "Error scanning booking: %v"}`, err), http.StatusInternalServerError)
 			return
 		}
 
-		// Parse the startTime and endTime from strings to time.Time
 		startTime, err := time.Parse("2006-01-02 15:04:05", startTimeStr)
 		if err != nil {
 			http.Error(w, fmt.Sprintf(`{"error": "Error parsing startTime: %v"}`, err), http.StatusInternalServerError)
@@ -413,7 +410,6 @@ func GetUpcomingBookings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Add booking and vehicle details to the response
 		bookings = append(bookings, map[string]interface{}{
 			"bookingID":    bookingID,
 			"vehicleID":    vehicleID,
@@ -426,13 +422,11 @@ func GetUpcomingBookings(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Check if there are any upcoming bookings
 	if len(bookings) == 0 {
 		http.Error(w, `{"error": "No upcoming bookings found for the specified user"}`, http.StatusNotFound)
 		return
 	}
 
-	// Send the response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(bookings)
 }

@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const vehiclesList = document.getElementById("vehiclesList");
 
-    // Fetch vehicles from the backend
     fetch("http://localhost:5002/api/v1/vehicles", {
         method: "GET",
         headers: {
@@ -15,13 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return response.json();
         })
         .then(data => {
-            // Check if the response contains an error or is empty
             if (!data || data.length === 0) {
                 vehiclesList.innerHTML = "<p>No vehicles available.</p>";
                 return;
             }
 
-            // Display the fetched vehicles
             data.forEach(vehicle => {
                 const vehicleCard = document.createElement("div");
                 vehicleCard.classList.add("vehicle-card");
@@ -42,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 });
 
-// Navigate to the vehicle details page
 function viewDetails(vehicleID) {
     window.location.href = `vehicledetails.html?vehicleID=${vehicleID}`;
 }

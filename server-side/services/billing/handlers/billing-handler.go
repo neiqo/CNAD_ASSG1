@@ -45,7 +45,6 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		PromotionID int     `json:"promotionID"`
 	}
 
-	// Decode the incoming JSON request body
 	if err := json.NewDecoder(r.Body).Decode(&paymentRequest); err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "Invalid input: %v"}`, err), http.StatusBadRequest)
 		return
@@ -98,7 +97,6 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"message": "Payment created and is pending!", "paymentID": %d, "finalAmount": %.2f}`, lastInsertID, finalAmount)))
 }
 
-// getPromotionsFromCommonService makes a request to the Common Service to fetch all promotions.
 func getPromotionsFromCommonService() ([]models.Promotion, error) {
 	resp, err := http.Get("http://localhost:5003/api/v1/promotions")
 	if err != nil {
@@ -190,16 +188,13 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract paymentID from URL parameters
 	paymentID := mux.Vars(r)["paymentID"]
 
-	// Define a struct for the request body to capture userID
 	type StatusUpdate struct {
 		UserID int `json:"userID"`
 	}
 
 	var input StatusUpdate
-	// Decode the incoming JSON request body
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		log.Printf("Received input: %+v", input)
 		http.Error(w, "Invalid input", http.StatusBadRequest)
@@ -208,13 +203,11 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Received input: %+v", input)
 
-	// Validate that the userID is provided
 	if input.UserID == 0 {
 		http.Error(w, "UserID is required", http.StatusBadRequest)
 		return
 	}
 
-	// Update the payment status to 'Successful' for the given paymentID and userID
 	query := `UPDATE payment_db.payments SET Status = 'Successful' WHERE paymentID = ? AND userID = ?`
 	_, err := db.Exec(query, paymentID, input.UserID)
 	if err != nil {
@@ -222,7 +215,6 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve the payment details including the user email, amount, promotion, and booking ID
 	var bookingID int
 	var userEmail string
 	var userName string
@@ -241,13 +233,11 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call vehicle-handler to update the booking status to 'Active'
 	if err := updateBookingStatusToActive(bookingID, input.UserID); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update booking status: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Create a detailed receipt content
 	receiptContent := fmt.Sprintf(
 		"Dear %s,\n\n"+
 			"Your payment for Booking ID %d has been successfully processed.\n\n"+
@@ -261,18 +251,15 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 		userName, bookingID, amount, promotionName,
 	)
 
-	// Send the receipt email to the user
 	if err := sendReceiptEmail(userEmail, receiptContent); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to send receipt email: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "Payment status updated to Successful and booking status updated to Active. Receipt sent to your email."}`))
 }
 
-// sendReceiptEmail sends an email with the receipt details to the user
 func sendReceiptEmail(toEmail, receiptContent string) error {
 	var godotErr = godotenv.Load("../../../.env")
 	if godotErr != nil {
@@ -289,11 +276,9 @@ func sendReceiptEmail(toEmail, receiptContent string) error {
 
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
-	// Prepare the email message
 	subject := "Payment Receipt"
 	message := []byte(fmt.Sprintf("Subject: %s\n\n%s", subject, receiptContent))
 
-	// Send the email
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{toEmail}, message)
 	if err != nil {
 		return fmt.Errorf("failed to send email: %v", err)
@@ -303,9 +288,7 @@ func sendReceiptEmail(toEmail, receiptContent string) error {
 	return nil
 }
 
-// updateBookingStatusToActive sends a request to the vehicle handler to update the booking status to active
 func updateBookingStatusToActive(bookingID, userID int) error {
-	// Construct the URL to call the vehicle-handler API
 	url := fmt.Sprintf("http://localhost:5002/api/v1/success-payment?bookingID=%d&userID=%d", bookingID, userID)
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
@@ -313,7 +296,6 @@ func updateBookingStatusToActive(bookingID, userID int) error {
 		return err
 	}
 
-	// Send the request to the vehicle-handler
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
