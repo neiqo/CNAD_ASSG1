@@ -52,6 +52,7 @@ func main() {
 	router.HandleFunc("/api/v1/vehicles/status", handlers.AddVehicleStatus).Methods("POST")
 	router.HandleFunc("/api/v1/bookings", handlers.AddBooking).Methods("POST")
 	router.HandleFunc("/api/v1/vehicles", handlers.GetVehicles).Methods("GET")
+	router.HandleFunc("/api/v1/vehicle", handlers.GetVehicleByID).Methods("GET")
 
 	fmt.Println("Vehicle Service listening at port 5002")
 	corsHandler := cors.Default().Handler(router)
