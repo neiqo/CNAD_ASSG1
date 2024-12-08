@@ -53,7 +53,7 @@ Follow the instructions below to set up and run the microservices locally.
 
 ### Prerequisites
 
-- 
+- Go
 - MySQL
 - Postman or similar tool for testing API endpoints
 
