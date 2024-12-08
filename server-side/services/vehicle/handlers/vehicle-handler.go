@@ -107,11 +107,6 @@ func AddBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("VehicleID: %d", input.VehicleID)
-	log.Printf("UserID: %d", input.UserID)
-	log.Printf("Start Time: %v", input.StartTime)
-	log.Printf("End Time: %v", input.EndTime)
-
 	query := `
         SELECT COUNT(*) 
         FROM bookings 
@@ -241,4 +236,224 @@ func GetVehicleByID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+func GetPastBookings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error": "Invalid request method"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		http.Error(w, `{"error": "userID is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	query := `
+        SELECT bookingID, vehicleID, startTime, endTime, status
+        FROM bookings
+        WHERE userID = ? AND status IN ('Completed', 'Cancelled')
+        ORDER BY endTime DESC
+    `
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error fetching past bookings: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var bookings []map[string]interface{}
+	for rows.Next() {
+		var bookingID, vehicleID int
+		var startTimeStr, endTimeStr, status string
+
+		err := rows.Scan(&bookingID, &vehicleID, &startTimeStr, &endTimeStr, &status)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Error scanning booking: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+
+		startTime, err := time.Parse("2006-01-02 15:04:05", startTimeStr)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Error parsing startTime: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+		endTime, err := time.Parse("2006-01-02 15:04:05", endTimeStr)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Error parsing endTime: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+
+		bookings = append(bookings, map[string]interface{}{
+			"bookingID": bookingID,
+			"vehicleID": vehicleID,
+			"startTime": startTime,
+			"endTime":   endTime,
+			"status":    status,
+		})
+	}
+
+	if len(bookings) == 0 {
+		http.Error(w, `{"error": "No completed or cancelled bookings found for the specified user"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(bookings)
+}
+func GetUpcomingBookings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error": "Invalid request method"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		http.Error(w, `{"error": "userID is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Get the current time
+	currentTime := time.Now()
+
+	query := `
+        SELECT 
+            b.bookingID, 
+            v.vehicleID, 
+            v.licensePlate, 
+            v.Model, 
+            v.rentalRate, 
+            b.startTime, 
+            b.endTime, 
+            b.status
+        FROM bookings b
+        JOIN vehicles v ON b.vehicleID = v.vehicleID
+        WHERE b.userID = ? AND b.startTime > ? AND b.status = 'Active'
+        ORDER BY b.startTime ASC
+    `
+
+	rows, err := db.Query(query, userID, currentTime)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error fetching upcoming bookings: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var bookings []map[string]interface{}
+	for rows.Next() {
+		var bookingID, vehicleID, rentalRate int
+		var licensePlate, model, status string
+		var startTimeStr, endTimeStr string
+
+		// Scan each row into variables
+		err := rows.Scan(&bookingID, &vehicleID, &licensePlate, &model, &rentalRate, &startTimeStr, &endTimeStr, &status)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Error scanning booking: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+
+		// Parse the startTime and endTime from strings to time.Time
+		startTime, err := time.Parse("2006-01-02 15:04:05", startTimeStr)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Error parsing startTime: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+		endTime, err := time.Parse("2006-01-02 15:04:05", endTimeStr)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Error parsing endTime: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+
+		// Add booking and vehicle details to the response
+		bookings = append(bookings, map[string]interface{}{
+			"bookingID":    bookingID,
+			"vehicleID":    vehicleID,
+			"licensePlate": licensePlate,
+			"model":        model,
+			"rentalRate":   rentalRate,
+			"startTime":    startTime,
+			"endTime":      endTime,
+			"status":       status,
+		})
+	}
+
+	// Check if there are any upcoming bookings
+	if len(bookings) == 0 {
+		http.Error(w, `{"error": "No upcoming bookings found for the specified user"}`, http.StatusNotFound)
+		return
+	}
+
+	// Send the response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(bookings)
+}
+
+func CancelBooking(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, `{"error": "Invalid request method"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	bookingID := r.URL.Query().Get("bookingID")
+	userID := r.URL.Query().Get("userID")
+	if bookingID == "" || userID == "" {
+		http.Error(w, `{"error": "bookingID and userID are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	var startTimeStr string
+	var status string
+	query := `
+        SELECT startTime, status 
+        FROM bookings 
+        WHERE bookingID = ? AND userID = ?`
+	err := db.QueryRow(query, bookingID, userID).Scan(&startTimeStr, &status)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error": "Booking not found or does not belong to the user"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error": "Error checking booking details: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	startTime, err := time.Parse("2006-01-02 15:04:05", startTimeStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error parsing startTime: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if startTime.Before(time.Now()) {
+		http.Error(w, `{"error": "Cannot cancel a booking that has already started or completed"}`, http.StatusBadRequest)
+		return
+	}
+
+	updateQuery := `
+        UPDATE bookings 
+        SET status = 'Cancelled' 
+        WHERE bookingID = ? AND userID = ? AND status != 'Cancelled'`
+	result, err := db.Exec(updateQuery, bookingID, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error updating booking status: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error checking affected rows: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		http.Error(w, `{"error": "Booking was already cancelled or doesn't belong to the user"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Return success message as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Booking successfully cancelled",
+	})
 }
