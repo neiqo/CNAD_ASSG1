@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const bookingErrorDiv = document.getElementById("bookingError");
     const bookingSuccessDiv = document.getElementById("bookingSuccess");
     const promotionsContainer = document.getElementById("promotions"); // Container for displaying promotions
+    const estimatedCostDiv = document.getElementById("estimatedCost"); // For showing the estimated cost
 
     const params = new URLSearchParams(window.location.search);
     const vehicleID = params.get("vehicleID");
@@ -14,6 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
         vehicleDetailsContainer.innerHTML = "<p>Error: Vehicle ID not provided.</p>";
         return;
     }
+
+    let vehicleRentalRate = 0; // To store the vehicle's rental rate
 
     // Fetch vehicle details
     fetch(`http://localhost:5002/api/v1/vehicle?vehicleID=${vehicleID}`, {
@@ -37,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const { vehicle, status } = data;
+
+            vehicleRentalRate = vehicle.rentalRate; // Store the vehicle's rental rate
 
             vehicleDetailsContainer.innerHTML = `
                 <h2>Vehicle Details</h2>
@@ -79,6 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         promotionCheckbox.type = "radio";
                         promotionCheckbox.name = "promotion";
                         promotionCheckbox.value = promotion.promotionID;
+                        promotionCheckbox.dataset.discount = promotion.discount; // Save the discount value
                         promotionOption.appendChild(promotionCheckbox);
                         promotionOption.appendChild(document.createTextNode(`${promotion.name} - ${promotion.discount}% off`));
                         promotionsContainer.appendChild(promotionOption);
@@ -114,6 +120,48 @@ document.addEventListener("DOMContentLoaded", () => {
             timeSlotsContainer.appendChild(label);
             timeSlotsContainer.appendChild(document.createElement("br"));
         }
+
+        // Event listener to update estimated cost whenever time slot or promotion is selected
+        document.querySelectorAll('input[name="timeSlot"]').forEach(checkbox => {
+            checkbox.addEventListener("change", calculateEstimatedCost);
+        });
+
+        document.querySelectorAll('input[name="promotion"]').forEach(radio => {
+            radio.addEventListener("change", calculateEstimatedCost);
+        });
+    }
+
+    function calculateEstimatedCost() {
+        const selectedSlots = [];
+        const checkboxes = document.querySelectorAll('input[name="timeSlot"]:checked');
+    
+        checkboxes.forEach(checkbox => {
+            selectedSlots.push(checkbox.value);
+        });
+    
+        if (selectedSlots.length === 0) {
+            estimatedCostDiv.textContent = "Please select at least one time slot.";
+            return;
+        }
+
+        // Calculate total rental hours for all selected slots
+        let totalHours = 0;
+        selectedSlots.forEach(slot => {
+            const [start, end] = slot.split("-");
+            totalHours += parseInt(end) - parseInt(start) + 1;  // Add the hours for this slot
+        });
+    
+        // Calculate the base cost (vehicle rental rate * total hours)
+        let estimatedCost = vehicleRentalRate * totalHours;
+    
+        // Apply promotion if available
+        const selectedPromotion = document.querySelector('input[name="promotion"]:checked');
+        if (selectedPromotion) {
+            const discount = parseInt(selectedPromotion.dataset.discount) || 0;
+            estimatedCost -= estimatedCost * (discount / 100);  // Apply discount
+        }
+    
+        estimatedCostDiv.textContent = `Estimated Cost: $${estimatedCost.toFixed(2)}`;
     }
 
     bookingForm.addEventListener("submit", function(event) {
@@ -140,21 +188,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const slot = selectedSlots[0];
     
         const [start, end] = slot.split("-");
-    
+
         const startTimeStr = `${start.padStart(2, '0')}:00`;  
         const endTimeStr = `${end.padStart(2, '0')}:00`;    
 
         const startTimeString = `${bookingDate}T${startTimeStr}Z`;  
         const endTimeString = `${bookingDate}T${endTimeStr}Z`;     
-    
 
         const userDetails = JSON.parse(localStorage.getItem('userDetails'));
 
         const selectedPromotion = document.querySelector('input[name="promotion"]:checked');
         const promotionID = selectedPromotion ? selectedPromotion.value : null;
     
-        console.log(promotionID)
-
         const booking = {
             vehicleID: Number(vehicleID),
             userID: userDetails.user_id,  

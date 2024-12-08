@@ -134,13 +134,11 @@ function makePayment(bookingID, userID, paymentButton) {
         return response.json();
     })
     .then(data => {
-        if (data.message === 'Payment status updated to Successful and booking status updated to Active') {
             alert('Payment successful and booking status updated to Active');
             paymentButton.closest('.booking-card').remove(); // Remove the payment button
             location.reload();
-        } else {
-            alert('Error making payment: ' + data.error);
-        }
+
+        
     })
     .catch(error => {
         console.error('Error making payment:', error);
