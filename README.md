@@ -64,6 +64,9 @@ Follow the instructions below to set up and run the microservices locally.
 
   To run each service locally you can run the RunAllServices.ps1 powershell script
 
+2. **Database**
+  Database script is stored in server-side/database.sql
+
 2. **Access the services:**
    - The services will run on different ports. By default, they are set to:
      - User Service: `http://localhost:5001`
