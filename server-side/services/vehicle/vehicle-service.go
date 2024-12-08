@@ -43,6 +43,12 @@ func main() {
 
 	handlers.SetDBConnection(db)
 
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://127.0.0.1:3000"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders: []string{"Content-Type"},
+	})
+
 	// ROUTES
 	router := mux.NewRouter()
 
@@ -53,10 +59,13 @@ func main() {
 	router.HandleFunc("/api/v1/bookings", handlers.AddBooking).Methods("POST")
 	router.HandleFunc("/api/v1/vehicles", handlers.GetVehicles).Methods("GET")
 	router.HandleFunc("/api/v1/vehicle", handlers.GetVehicleByID).Methods("GET")
+	router.HandleFunc("/api/v1/past-bookings", handlers.GetPastBookings).Methods("GET")
+	router.HandleFunc("/api/v1/upcoming-bookings", handlers.GetUpcomingBookings).Methods("GET")
+	router.HandleFunc("/api/v1/cancel-booking", handlers.CancelBooking).Methods("PUT")
 
 	fmt.Println("Vehicle Service listening at port 5002")
-	corsHandler := cors.Default().Handler(router)
-	log.Fatal(http.ListenAndServe("localhost:5002", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5002", c.Handler(router)))
+
 }
 
 func retryDBConnection(dbAuth string) {
