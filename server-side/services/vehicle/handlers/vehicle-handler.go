@@ -600,3 +600,36 @@ func ModifyBooking(w http.ResponseWriter, r *http.Request) {
 		"message": "Booking successfully modified",
 	})
 }
+
+func UpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract bookingID from query parameters
+	bookingID := r.URL.Query().Get("bookingID")
+	if bookingID == "" {
+		http.Error(w, "bookingID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Extract userID from query parameters
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		http.Error(w, "userID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Update the booking status to 'Active' in the database
+	query := `UPDATE bookings SET Status = 'Active' WHERE bookingID = ? AND userID = ?`
+	_, err := db.Exec(query, bookingID, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update booking status: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Booking status updated to Active"}`))
+}

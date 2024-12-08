@@ -45,9 +45,9 @@ func main() {
 	handlers.SetDBConnection(db)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://127.0.0.1:3000"},        // specify your frontend URL
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"}, // methods you want to allow
-		AllowedHeaders: []string{"Content-Type"},                 // headers you want to allow
+		AllowedOrigins: []string{"http://127.0.0.1:3000"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders: []string{"Content-Type"},
 	})
 
 	router := mux.NewRouter()

@@ -43,6 +43,12 @@ func main() {
 
 	handlers.SetDBConnection(db)
 
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://127.0.0.1:3000"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders: []string{"Content-Type"},
+	})
+
 	// ROUTES
 	router := mux.NewRouter()
 
@@ -51,10 +57,10 @@ func main() {
 	router.HandleFunc("/api/v1/payments", handlers.CreatePayment).Methods("POST")
 	router.HandleFunc("/api/v1/payments/{paymentID}", handlers.UpdatePaymentStatus).Methods("PUT")
 	router.HandleFunc("/api/v1/payments/{paymentID}", handlers.GetPayment).Methods("GET")
+	router.HandleFunc("/api/v1/make-payment/{paymentID}", handlers.UpdatePaymentStatusToSuccessful).Methods("PUT")
 
 	fmt.Println("Billing Service listening at port 5004")
-	corsHandler := cors.Default().Handler(router)
-	log.Fatal(http.ListenAndServe("localhost:5004", corsHandler))
+	log.Fatal(http.ListenAndServe("localhost:5004", c.Handler(router)))
 }
 
 func retryDBConnection(dbAuth string) {

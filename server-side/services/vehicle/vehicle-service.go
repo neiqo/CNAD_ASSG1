@@ -63,6 +63,7 @@ func main() {
 	router.HandleFunc("/api/v1/upcoming-bookings", handlers.GetUpcomingBookings).Methods("GET")
 	router.HandleFunc("/api/v1/cancel-booking", handlers.CancelBooking).Methods("PUT")
 	router.HandleFunc("/api/v1/modify-booking", handlers.ModifyBooking).Methods("PUT")
+	router.HandleFunc("/api/v1/success-payment", handlers.UpdateBookingStatus).Methods("PUT")
 
 	fmt.Println("Vehicle Service listening at port 5002")
 	log.Fatal(http.ListenAndServe("localhost:5002", c.Handler(router)))

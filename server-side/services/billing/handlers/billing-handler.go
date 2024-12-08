@@ -181,3 +181,89 @@ func GetPayment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(payment)
 }
+
+func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract paymentID from URL parameters
+	paymentID := mux.Vars(r)["paymentID"]
+
+	// Define a struct for the request body to capture userID
+	type StatusUpdate struct {
+		UserID int `json:"userID"`
+	}
+
+	var input StatusUpdate
+	// Decode the incoming JSON request body
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		log.Printf("Received input: %+v", input)
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Received input: %+v", input)
+
+	// Validate that the userID is provided
+	if input.UserID == 0 {
+		http.Error(w, "UserID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Update the payment status to 'Successful' for the given paymentID and userID
+	query := `UPDATE payments SET Status = 'Successful' WHERE paymentID = ? AND userID = ?`
+	_, err := db.Exec(query, paymentID, input.UserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update payment status: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Retrieve the bookingID from the payments table
+	var bookingID int
+	query = `SELECT bookingID FROM payments WHERE paymentID = ?`
+	err = db.QueryRow(query, paymentID).Scan(&bookingID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to retrieve bookingID: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Call vehicle-handler to update the booking status to 'Active'
+	if err := updateBookingStatusToActive(bookingID, input.UserID); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update booking status: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Payment status updated to Successful and booking status updated to Active"}`))
+}
+
+// updateBookingStatusToActive sends a request to the vehicle handler to update the booking status to active
+func updateBookingStatusToActive(bookingID, userID int) error {
+	// Construct the URL to call the vehicle-handler API
+	url := fmt.Sprintf("http://localhost:5002/api/v1/success-payment?bookingID=%d&userID=%d", bookingID, userID)
+	req, err := http.NewRequest("PUT", url, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return err
+	}
+
+	// Send the request to the vehicle-handler
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to send request to vehicle-handler: %v", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Failed to update booking status. Status code: %d", resp.StatusCode)
+		return fmt.Errorf("failed to update booking status: %v", resp.Status)
+	}
+
+	log.Printf("Booking status updated to Active successfully")
+	return nil
+}

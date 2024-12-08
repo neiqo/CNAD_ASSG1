@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     const upcomingBookingsContainer = document.getElementById('upcoming-bookings-container');
-
     const userDetails = JSON.parse(localStorage.getItem('userDetails'));
     const userID = userDetails?.user_id;
 
@@ -15,14 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'Content-Type': 'application/json',
         },
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(errorData => {
-                throw new Error(`Error: ${errorData.error || 'An unexpected error occurred'}`);
-            });
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         if (!data || data.length === 0) {
             upcomingBookingsContainer.innerHTML = '<p>No upcoming bookings found.</p>';
@@ -56,6 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="modify-button" data-booking-id="${booking.bookingID}" data-booking-vehicle-id="${booking.vehicleID}">Modify Timeslot</button>
             `;
 
+            if (booking.status === "Pending") {
+                bookingCard.innerHTML += `
+                    <button class="make-payment-button" data-booking-id="${booking.bookingID}" data-user-id="${userID}">Make Payment</button>
+                `;
+            }
+
             upcomingBookingsContainer.appendChild(bookingCard);
         });
 
@@ -63,44 +61,94 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.cancel-button').forEach(button => {
             button.addEventListener('click', (event) => {
                 const bookingID = event.target.dataset.bookingId;
-
-                fetch(`http://localhost:5002/api/v1/cancel-booking?bookingID=${bookingID}&userID=${userID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message === 'Booking successfully cancelled') {
-                        alert('Booking cancelled successfully');
-                        event.target.closest('.booking-card').remove();
-                    } else {
-                        alert('Error cancelling booking: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error cancelling booking:', error);
-                    alert('Failed to cancel booking. Please try again later.');
-                });
+                cancelBooking(bookingID, userID, event.target);
             });
         });
 
         // Modify timeslot functionality
         document.querySelectorAll('.modify-button').forEach(button => {
             button.addEventListener('click', (event) => {
-                console.log(event.target.dataset)
                 const bookingID = event.target.dataset.bookingId;
                 const vehicleID = event.target.dataset.bookingVehicleId;
                 displayModifyTimeslotModal(bookingID, userID, Number(vehicleID));
             });
         });
+
+        // Make Payment functionality
+        document.querySelectorAll('.make-payment-button').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const bookingID = event.target.dataset.bookingId;
+                const userID = event.target.dataset.userId;
+                makePayment(bookingID, userID, event.target);
+            });
+        });
+
     })
     .catch(error => {
         console.error('Error fetching upcoming bookings:', error);
         upcomingBookingsContainer.innerHTML = `<p>${error.message}</p>`;
     });
 });
+
+function cancelBooking(bookingID, userID, cancelButton) {
+    fetch(`http://localhost:5002/api/v1/cancel-booking?bookingID=${bookingID}&userID=${userID}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message === 'Booking successfully cancelled') {
+            alert('Booking cancelled successfully');
+            cancelButton.closest('.booking-card').remove();
+        } else {
+            alert('Error cancelling booking: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error cancelling booking:', error);
+        alert('Failed to cancel booking. Please try again later.');
+    });
+}
+function makePayment(bookingID, userID, paymentButton) {
+    console.log(userID);
+    fetch(`http://localhost:5004/api/v1/make-payment/${bookingID}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            userID: Number(userID),
+        }),
+    })
+    .then(response => {
+        // Check if the response status is OK (2xx)
+        if (!response.ok) {
+            // Attempt to read the error message from the response
+            return response.text().then(text => {
+                throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}. Response: ${text}`);
+            });
+        }
+        // Attempt to parse the JSON response
+        return response.json();
+    })
+    .then(data => {
+        if (data.message === 'Payment status updated to Successful and booking status updated to Active') {
+            alert('Payment successful and booking status updated to Active');
+            paymentButton.closest('.booking-card').remove(); // Remove the payment button
+            location.reload();
+        } else {
+            alert('Error making payment: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error making payment:', error);
+        alert('Failed to make payment. Please try again later. Error: ' + error.message);
+    });
+}
+
+
 
 function displayModifyTimeslotModal(bookingID, userID, vehicleID) {
     const modal = document.createElement('div');
@@ -141,8 +189,6 @@ function displayModifyTimeslotModal(bookingID, userID, vehicleID) {
         
         const newStartTime = `${newDate}T${start}:00Z`;  
         const newEndTime = `${newDate}T${end}:00Z`;
-        console.log(newStartTime)
-        console.log(newEndTime)
 
         fetch(`http://localhost:5002/api/v1/modify-booking?bookingID=${bookingID}`, {
             method: 'PUT',
@@ -178,4 +224,3 @@ function displayModifyTimeslotModal(bookingID, userID, vehicleID) {
         modal.remove();
     });
 }
-
