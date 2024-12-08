@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const timeSlotsContainer = document.getElementById("timeSlots");
     const bookingErrorDiv = document.getElementById("bookingError");
     const bookingSuccessDiv = document.getElementById("bookingSuccess");
+    const promotionsContainer = document.getElementById("promotions"); // Container for displaying promotions
 
     const params = new URLSearchParams(window.location.search);
     const vehicleID = params.get("vehicleID");
@@ -14,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    // Fetch vehicle details
     fetch(`http://localhost:5002/api/v1/vehicle?vehicleID=${vehicleID}`, {
         method: "GET",
         headers: {
@@ -49,6 +51,45 @@ document.addEventListener("DOMContentLoaded", () => {
                 ` : "<p>No status available for this vehicle.</p>"}
             `;
 
+            // Fetch available promotions
+            fetch("http://localhost:5003/api/v1/promotions", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.error || `Error fetching promotions. Status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(promotions => {
+                    if (promotions.error) {
+                        promotionsContainer.innerHTML = `<p>${promotions.error}</p>`;
+                        return;
+                    }
+
+                    promotionsContainer.innerHTML = "<h3>Select a Promotion</h3>";
+                    promotions.forEach(promotion => {
+                        const promotionOption = document.createElement("label");
+                        const promotionCheckbox = document.createElement("input");
+                        promotionCheckbox.type = "radio";
+                        promotionCheckbox.name = "promotion";
+                        promotionCheckbox.value = promotion.promotionID;
+                        promotionOption.appendChild(promotionCheckbox);
+                        promotionOption.appendChild(document.createTextNode(`${promotion.name} - ${promotion.discount}% off`));
+                        promotionsContainer.appendChild(promotionOption);
+                        promotionsContainer.appendChild(document.createElement("br"));
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching promotions:", error);
+                    promotionsContainer.innerHTML = `<p>${error.message}</p>`;
+                });
+
             generateTimeSlots();
         })
         .catch(error => {
@@ -67,7 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
             checkbox.type = "checkbox";
             checkbox.name = "timeSlot";
             checkbox.value = `${hour}:00-${hour + timeSlotDuration -1}:59`;
-            console.log(checkbox.value)
             label.appendChild(checkbox);
             label.appendChild(document.createTextNode(`${hour}:00 - ${hour + timeSlotDuration}:00`));
 
@@ -110,25 +150,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const userDetails = JSON.parse(localStorage.getItem('userDetails'));
 
-        console.log(userDetails)
+        const selectedPromotion = document.querySelector('input[name="promotion"]:checked');
+        const promotionID = selectedPromotion ? selectedPromotion.value : null;
+    
+        console.log(promotionID)
 
-        // Create the single booking object
         const booking = {
             vehicleID: Number(vehicleID),
-            userID: userDetails.user_id,  // Replace with actual user ID
+            userID: userDetails.user_id,  
             startTime: startTimeString,
-            endTime: endTimeString
+            endTime: endTimeString,
+            promotionID: Number(promotionID),
         };
 
-        console.log('Request Body:', JSON.stringify(booking));
-    
-        // Send the single booking request to the backend
         fetch("http://localhost:5002/api/v1/bookings", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(booking) // Send only a single booking object
+            body: JSON.stringify(booking)
         })
         .then(response => {
             if (!response.ok) {
@@ -139,12 +179,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return response.json();
         })
         .then(data => {
-            // Handle success response
-            bookingSuccessDiv.textContent = "Booking successful!";
+            bookingSuccessDiv.textContent = "Booking successful! Payment is pending";
             bookingErrorDiv.textContent = "";
         })
         .catch(error => {
-            // Handle error response
             bookingErrorDiv.textContent = `Error: ${error.message}`;
             bookingSuccessDiv.textContent = "";
         });

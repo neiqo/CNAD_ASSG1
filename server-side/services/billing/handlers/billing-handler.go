@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -30,33 +31,88 @@ func Status(getDBStatus func() bool) http.HandlerFunc {
 
 func CreatePayment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		http.Error(w, `{"error": "Invalid request method"}`, http.StatusMethodNotAllowed)
 		return
 	}
 
-	type PaymentInput struct {
+	var paymentRequest struct {
 		UserID      int     `json:"userID"`
 		BookingID   int     `json:"bookingID"`
-		PromotionID int     `json:"promotionID"`
 		Amount      float64 `json:"amount"`
+		PromotionID int     `json:"promotionID"`
 	}
 
-	var input PaymentInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	// Decode the incoming JSON request body
+	if err := json.NewDecoder(r.Body).Decode(&paymentRequest); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Invalid input: %v"}`, err), http.StatusBadRequest)
 		return
 	}
 
-	query := `INSERT INTO payments (userID, bookingID, promotionID, Amount) VALUES (?, ?, ?, ?)`
-	result, err := db.Exec(query, input.UserID, input.BookingID, input.PromotionID, input.Amount)
+	log.Printf("promotionid %d", paymentRequest.PromotionID)
+
+	log.Printf("Received payment request: %+v", paymentRequest)
+	promotions, err := getPromotionsFromCommonService()
 	if err != nil {
-		http.Error(w, "Failed to create payment", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to fetch promotions: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
-	paymentID, _ := result.LastInsertId()
+	var discount float64
+	for _, promo := range promotions {
+		if promo.PromotionID == paymentRequest.PromotionID {
+			if promo.IfPercentage {
+				discount = paymentRequest.Amount * promo.Discount / 100
+			} else {
+				discount = promo.Discount
+			}
+			break
+		}
+	}
+
+	finalAmount := paymentRequest.Amount - discount
+	log.Printf("Applied discount of %.2f. Final amount to pay: %.2f", discount, finalAmount)
+
+	query := `INSERT INTO payment_db.payments (userID, bookingID, Amount, Status, promotionID) 
+              VALUES (?, ?, ?, 'Pending', ?)`
+	result, err := db.Exec(query, paymentRequest.UserID, paymentRequest.BookingID, finalAmount, paymentRequest.PromotionID)
+
+	if err != nil {
+		log.Printf("Error executing SQL query: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to create payment record. Error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	lastInsertID, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Error getting last inserted ID: %v", err)
+		http.Error(w, `{"error": "Failed to retrieve last inserted ID"}`, http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Payment created successfully with ID: %d", lastInsertID)
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(`{"paymentID": ` + string(paymentID) + `}`))
+	w.Write([]byte(fmt.Sprintf(`{"message": "Payment created and is pending!", "paymentID": %d, "finalAmount": %.2f}`, lastInsertID, finalAmount)))
+}
+
+// getPromotionsFromCommonService makes a request to the Common Service to fetch all promotions.
+func getPromotionsFromCommonService() ([]models.Promotion, error) {
+	resp, err := http.Get("http://localhost:5003/api/v1/promotions")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch promotions: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch promotions. Status code: %d", resp.StatusCode)
+	}
+
+	var promotions []models.Promotion
+	if err := json.NewDecoder(resp.Body).Decode(&promotions); err != nil {
+		return nil, fmt.Errorf("failed to decode promotions: %v", err)
+	}
+
+	return promotions, nil
 }
 
 func UpdatePaymentStatus(w http.ResponseWriter, r *http.Request) {

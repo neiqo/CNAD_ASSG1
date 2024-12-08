@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -94,10 +95,11 @@ func AddBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type BookingInput struct {
-		VehicleID int       `json:"vehicleID"`
-		UserID    int       `json:"userID"`
-		StartTime time.Time `json:"startTime"`
-		EndTime   time.Time `json:"endTime"`
+		VehicleID   int       `json:"vehicleID"`
+		UserID      int       `json:"userID"`
+		StartTime   time.Time `json:"startTime"`
+		EndTime     time.Time `json:"endTime"`
+		PromotionID int       `json:"promotionID"`
 	}
 
 	var input BookingInput
@@ -107,16 +109,17 @@ func AddBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `
-        SELECT COUNT(*) 
-        FROM bookings 
-        WHERE vehicleID = ? 
-        AND (
-            (startTime BETWEEN ? AND ?) OR 
-            (endTime BETWEEN ? AND ?) OR 
-            (? BETWEEN startTime AND endTime) OR 
-            (? BETWEEN startTime AND endTime)
-        )`
+	log.Printf("promtionid %d", input.PromotionID)
+
+	query := `SELECT COUNT(*) 
+			  FROM vehicles_reservations_db.bookings 
+			  WHERE vehicleID = ? 
+			  AND (
+				  (startTime BETWEEN ? AND ?) OR 
+				  (endTime BETWEEN ? AND ?) OR 
+				  (? BETWEEN startTime AND endTime) OR 
+				  (? BETWEEN startTime AND endTime)
+			  )`
 	var count int
 	err := db.QueryRow(query, input.VehicleID, input.StartTime, input.EndTime, input.StartTime, input.EndTime, input.StartTime, input.EndTime).Scan(&count)
 	if err != nil {
@@ -128,16 +131,61 @@ func AddBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query = `INSERT INTO bookings (vehicleID, userID, startTime, endTime) VALUES (?, ?, ?, ?)`
-	_, err = db.Exec(query, input.VehicleID, input.UserID, input.StartTime, input.EndTime)
+	query = `INSERT INTO vehicles_reservations_db.bookings (vehicleID, userID, startTime, endTime, Status) 
+			  VALUES (?, ?, ?, ?, 'Pending')`
+	result, err := db.Exec(query, input.VehicleID, input.UserID, input.StartTime, input.EndTime)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "Failed to create booking. Error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
+	bookingID, _ := result.LastInsertId()
+
+	var rentalRate float64
+	query = `SELECT rentalRate FROM vehicles_reservations_db.vehicles WHERE vehicleID = ?`
+	err = db.QueryRow(query, input.VehicleID).Scan(&rentalRate)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error fetching rental rate. Error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	duration := input.EndTime.Sub(input.StartTime).Hours()
+	amount := duration * rentalRate
+
+	paymentRequest := struct {
+		UserID      int     `json:"userID"`
+		BookingID   int     `json:"bookingID"`
+		Amount      float64 `json:"amount"`
+		PromotionID int     `json:"promotionID"`
+	}{
+		UserID:      input.UserID,
+		BookingID:   int(bookingID),
+		Amount:      amount,
+		PromotionID: input.PromotionID,
+	}
+
+	payload, err := json.Marshal(paymentRequest)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error creating payment request: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := http.Post("http://localhost:5004/api/v1/payments", "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error contacting payment service: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to process payment: %v"}`, resp.Status), http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, `{"message": "Booking created successfully!"}`)
+	w.Write([]byte(`{"message": "Booking created and payment is pending!"}`))
 }
+
 func GetVehicles(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT vehicleID, licensePlate, Model, rentalRate FROM vehicles`
 	rows, err := db.Query(query)
@@ -329,7 +377,7 @@ func GetUpcomingBookings(w http.ResponseWriter, r *http.Request) {
             b.status
         FROM bookings b
         JOIN vehicles v ON b.vehicleID = v.vehicleID
-        WHERE b.userID = ? AND b.startTime > ? AND b.status = 'Active'
+        WHERE b.userID = ? AND b.startTime > ? AND b.status = 'Active' OR b.status = 'Pending'
         ORDER BY b.startTime ASC
     `
 
