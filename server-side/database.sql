@@ -19,7 +19,9 @@ create table users (
     Email varchar(100) unique not null,
     contactNo char(8) not null,
     hashedPassword varchar(255) not null,
-    membershipTier enum('Basic','Premium','VIP') default 'Basic'
+    membershipTier enum('Basic','Premium','VIP') default 'Basic',
+    verifCode varchar(255),
+    emailVerified boolean default false
 );
 
 
@@ -45,7 +47,7 @@ create table promotions (
     Name varchar(100) not null,
     Description varchar(255) not null,
     Discount decimal(10,2) not null,
-    ifPercentage enum ('1','0') not null
+    ifPercentage boolean not null
 );
 
 
@@ -86,6 +88,15 @@ create table bookings (
     foreign key (userID) references users_db.users(userID),
     foreign key (vehicleID) references vehicles(vehicleID)
 );
+
+SET GLOBAL event_scheduler = ON;
+CREATE EVENT IF NOT EXISTS update_booking_status
+ON SCHEDULE EVERY 1 MINUTE
+DO
+  UPDATE vehicles_reservations_db.bookings
+  SET Status = 'Completed'
+  WHERE Status = 'Active'
+    AND endTime < NOW();
 
 
 --------------------------------------------------------------------------------------------------------------------
@@ -142,9 +153,9 @@ INSERT INTO member_benefits (membershipTier, Name, Description) VALUES
 
 -- Insert fake data for promotions
 INSERT INTO promotions (Name, Description, Discount, ifPercentage) VALUES
-('New Year Promo', 'Get 20% off on your next booking.', 20.00, '1'),
-('Flat Discount', 'Get $10 off on your next booking.', 10.00, '0'),
-('Holiday Special', '15% off on bookings during the holiday season.', 15.00, '1');
+('New Year Promo', 'Get 20% off on your next booking.', 20.00, true),
+('Flat Discount', 'Get $10 off on your next booking.', 10.00, false),
+('Holiday Special', '15% off on bookings during the holiday season.', 15.00, true);
 
 
 --------------------------------------------------------------------------------------------------------------------
