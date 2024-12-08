@@ -14,6 +14,25 @@
     <div id="vehicleDetails">
         <!-- Vehicle details will be rendered here dynamically -->
     </div>
+
+    <div id="bookingSection">
+        <h2>Book this Vehicle</h2>
+
+        <!-- Booking Form -->
+        <form id="bookingForm">
+            <label for="bookingDate">Select Date:</label>
+            <input type="date" id="bookingDate" name="bookingDate">
+
+            <label>Select Time Slots (6 AM - 10 PM):</label>
+            <div id="timeSlots"></div>
+
+            <button type="submit">Book Vehicle</button>
+        </form>
+
+        <div id="bookingError"></div>
+        <div id="bookingSuccess"></div>
+    </div>
+
     <script src="../js/vehicledetails.js" defer></script>
 </body>
 </html>

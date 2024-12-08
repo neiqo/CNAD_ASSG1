@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 	"vehicle/models"
@@ -88,7 +89,7 @@ func AddVehicleStatus(w http.ResponseWriter, r *http.Request) {
 
 func AddBooking(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		http.Error(w, `{"error": "Invalid request method"}`, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -101,21 +102,47 @@ func AddBooking(w http.ResponseWriter, r *http.Request) {
 
 	var input BookingInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error": "Invalid input: %v"}`, err), http.StatusBadRequest)
+		log.Printf("Error decoding input: %v", err)
 		return
 	}
 
-	query := `INSERT INTO bookings (vehicleID, userID, startTime, endTime) VALUES (?, ?, ?, ?)`
-	_, err := db.Exec(query, input.VehicleID, input.UserID, input.StartTime, input.EndTime)
+	log.Printf("VehicleID: %d", input.VehicleID)
+	log.Printf("UserID: %d", input.UserID)
+	log.Printf("Start Time: %v", input.StartTime)
+	log.Printf("End Time: %v", input.EndTime)
+
+	query := `
+        SELECT COUNT(*) 
+        FROM bookings 
+        WHERE vehicleID = ? 
+        AND (
+            (startTime BETWEEN ? AND ?) OR 
+            (endTime BETWEEN ? AND ?) OR 
+            (? BETWEEN startTime AND endTime) OR 
+            (? BETWEEN startTime AND endTime)
+        )`
+	var count int
+	err := db.QueryRow(query, input.VehicleID, input.StartTime, input.EndTime, input.StartTime, input.EndTime, input.StartTime, input.EndTime).Scan(&count)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error": "Error checking availability for the requested time slot: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+	if count > 0 {
+		http.Error(w, `{"error": "Vehicle is already booked for the requested time slot"}`, http.StatusBadRequest)
+		return
+	}
+
+	query = `INSERT INTO bookings (vehicleID, userID, startTime, endTime) VALUES (?, ?, ?, ?)`
+	_, err = db.Exec(query, input.VehicleID, input.UserID, input.StartTime, input.EndTime)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "Failed to create booking. Error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Booking created successfully!")
+	fmt.Fprintf(w, `{"message": "Booking created successfully!"}`)
 }
-
 func GetVehicles(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT vehicleID, licensePlate, Model, rentalRate FROM vehicles`
 	rows, err := db.Query(query)
