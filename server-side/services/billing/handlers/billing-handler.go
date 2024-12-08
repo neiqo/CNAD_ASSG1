@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/smtp"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 var db *sql.DB
@@ -181,7 +184,6 @@ func GetPayment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(payment)
 }
-
 func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -213,19 +215,29 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the payment status to 'Successful' for the given paymentID and userID
-	query := `UPDATE payments SET Status = 'Successful' WHERE paymentID = ? AND userID = ?`
+	query := `UPDATE payment_db.payments SET Status = 'Successful' WHERE paymentID = ? AND userID = ?`
 	_, err := db.Exec(query, paymentID, input.UserID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update payment status: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Retrieve the bookingID from the payments table
+	// Retrieve the payment details including the user email, amount, promotion, and booking ID
 	var bookingID int
-	query = `SELECT bookingID FROM payments WHERE paymentID = ?`
-	err = db.QueryRow(query, paymentID).Scan(&bookingID)
+	var userEmail string
+	var userName string
+	var amount float64
+	var promotionName string
+	query = `
+        SELECT p.bookingID, u.Email, u.Name, p.Amount, pr.Name
+        FROM payment_db.payments p
+        JOIN users_db.users u ON p.userID = u.userID
+        LEFT JOIN common_db.promotions pr ON p.promotionID = pr.promotionID
+        WHERE p.paymentID = ?
+    `
+	err = db.QueryRow(query, paymentID).Scan(&bookingID, &userEmail, &userName, &amount, &promotionName)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to retrieve bookingID: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to retrieve payment details: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -235,9 +247,60 @@ func UpdatePaymentStatusToSuccessful(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create a detailed receipt content
+	receiptContent := fmt.Sprintf(
+		"Dear %s,\n\n"+
+			"Your payment for Booking ID %d has been successfully processed.\n\n"+
+			"Payment Details:\n"+
+			"- Amount: $%.2f\n"+
+			"- Promotion Applied: %s\n"+
+			"- Payment Status: Successful\n\n"+
+			"Thank you for your payment! Your booking is now active.\n\n"+
+			"Best regards,\n"+
+			"Vehicle Reservations Team",
+		userName, bookingID, amount, promotionName,
+	)
+
+	// Send the receipt email to the user
+	if err := sendReceiptEmail(userEmail, receiptContent); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to send receipt email: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Payment status updated to Successful and booking status updated to Active"}`))
+	w.Write([]byte(`{"message": "Payment status updated to Successful and booking status updated to Active. Receipt sent to your email."}`))
+}
+
+// sendReceiptEmail sends an email with the receipt details to the user
+func sendReceiptEmail(toEmail, receiptContent string) error {
+	var godotErr = godotenv.Load("../../../.env")
+	if godotErr != nil {
+		log.Fatalf("Error loading .env file: %v", godotErr)
+	}
+
+	GMAIL_EMAIL := os.Getenv("GMAIL_EMAIL")
+	GMAIL_PASS := os.Getenv("GMAIL_PASS")
+
+	from := GMAIL_EMAIL
+	password := GMAIL_PASS
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	// Prepare the email message
+	subject := "Payment Receipt"
+	message := []byte(fmt.Sprintf("Subject: %s\n\n%s", subject, receiptContent))
+
+	// Send the email
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{toEmail}, message)
+	if err != nil {
+		return fmt.Errorf("failed to send email: %v", err)
+	}
+
+	log.Printf("Receipt email sent to: %s", toEmail)
+	return nil
 }
 
 // updateBookingStatusToActive sends a request to the vehicle handler to update the booking status to active
