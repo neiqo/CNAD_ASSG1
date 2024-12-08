@@ -268,11 +268,10 @@ func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
-	email := vars["email"] // Extract user email from URL params
+	email := vars["email"]
 
 	email = strings.TrimSpace(email)
 
-	// Parse the JSON request body
 	var updateData struct {
 		Name      string `json:"name,omitempty"`
 		ContactNo string `json:"contactNo,omitempty"`
@@ -285,25 +284,20 @@ func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prepare to update the fields that were provided in the request
 	var updateFields []string
 	var updateValues []interface{}
 
-	// Check and add name if it's provided
 	if updateData.Name != "" {
 		updateFields = append(updateFields, "Name = ?")
 		updateValues = append(updateValues, updateData.Name)
 	}
 
-	// Check and add contact number if it's provided
 	if updateData.ContactNo != "" {
 		updateFields = append(updateFields, "contactNo = ?")
 		updateValues = append(updateValues, updateData.ContactNo)
 	}
 
-	// Check and add password if it's provided
 	if updateData.Password != "" {
-		// Hash the new password before storing it
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updateData.Password), bcrypt.DefaultCost)
 		if err != nil {
 			http.Error(w, fmt.Sprintf(`{"error": "Error hashing new password. Error: %v"}`, err), http.StatusInternalServerError)
@@ -313,24 +307,20 @@ func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
 		updateValues = append(updateValues, string(hashedPassword))
 	}
 
-	// If no fields were provided, return an error
 	if len(updateFields) == 0 {
 		http.Error(w, `{"error": "No fields provided to update"}`, http.StatusBadRequest)
 		return
 	}
 
-	// Construct the update query
 	query := fmt.Sprintf("UPDATE users SET %s WHERE email = ?", strings.Join(updateFields, ", "))
 	updateValues = append(updateValues, email)
 
-	// Execute the query
 	_, err = db.Exec(query, updateValues...)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "Error updating user details. Error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
-	// Return a success message
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	response := map[string]string{

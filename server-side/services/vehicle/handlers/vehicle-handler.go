@@ -152,9 +152,8 @@ func GetVehicleByID(w http.ResponseWriter, r *http.Request) {
 
 	var vehicle models.Vehicle
 	var status models.VehicleStatus
-	var timestampStr string // Placeholder for TIMESTAMP field
+	var timestampStr string
 
-	// Query for vehicle details
 	queryVehicle := `
         SELECT vehicleID, licensePlate, Model, rentalRate
         FROM vehicles
@@ -174,7 +173,6 @@ func GetVehicleByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query for the latest vehicle status
 	queryStatus := `
         SELECT statusID, vehicleID, timestamp, location, chargeLevel, cleanlinessStatus
         FROM vehicleStatusHistory
@@ -184,17 +182,16 @@ func GetVehicleByID(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow(queryStatus, vehicleID).Scan(
 		&status.StatusID,
 		&status.VehicleID,
-		&timestampStr, // Read TIMESTAMP as string
+		&timestampStr,
 		&status.Location,
 		&status.ChargeLevel,
 		&status.CleanlinessStatus,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// If no status is found, return vehicle details without status
 			response := map[string]interface{}{
 				"vehicle": vehicle,
-				"status":  nil, // No status available
+				"status":  nil,
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -204,14 +201,12 @@ func GetVehicleByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the timestamp string into a `time.Time`
 	status.Timestamp, err = time.Parse("2006-01-02 15:04:05", timestampStr)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error": "Failed to parse timestamp. Error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
-	// Combine vehicle and status details into a single response
 	response := map[string]interface{}{
 		"vehicle": vehicle,
 		"status":  status,
